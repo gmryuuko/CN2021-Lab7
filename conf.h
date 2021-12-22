@@ -1,5 +1,5 @@
 // 服务器IP
-#define SERV_IP "127.0.0.1"
+#define SERV_IP "47.114.189.50"
 // 服务器端口
 #define SERV_PORT 6005
 // 服务器最大同时连接数
