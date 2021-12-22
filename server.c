@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
     serv_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     // server address
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = inet_addr(SERV_IP);
+    serv_addr.sin_addr.s_addr = htons(INADDR_ANY);
     serv_addr.sin_port = htons(SERV_PORT);
     // bind
     bind(serv_sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
@@ -246,6 +246,7 @@ void analysis_pkt(int from, struct data_pkt* pkt) {
         printf("res.str: %s\n", res.str);
 #endif
         send_pkt(from, &res, strlen(send_buf));
+	    printf("Send time to %d.\n", from);
         break;
     }
 
@@ -254,6 +255,7 @@ void analysis_pkt(int from, struct data_pkt* pkt) {
         res.command = RET_NAME;
         res.str = send_buf;
         send_pkt(from, &res, strlen(send_buf));
+	    printf("Send name to %d.\n", from);
         break;
     }
     
@@ -270,30 +272,37 @@ void analysis_pkt(int from, struct data_pkt* pkt) {
         res.command = RET_CONNLIST;
         res.str = send_buf;
         send_pkt(from, &res, strlen(send_buf));
+	    printf("Send connection list to %d.\n", from);
         break;
     }
 
     case CMD_SEND: {
         char dest = pkt->str[0];
         if (dest < 0 || dest >= MAX_CLIENT_CNT || clnts[dest].valid == 0) {
+            // 客户端不在线
             sprintf(send_buf, "Client %d is offline.\n", dest);
             res.command = RET_SEND;
             res.str = send_buf;
             send_pkt(from, &res, strlen(send_buf));
+	        printf("Failed to forward a message. Client offline\n");
         } else {
+            // 可以转发
             int data_len = 1 + strlen(pkt->str + 1);
             send_buf[0] = from;
             memcpy(send_buf + 1, pkt->str + 1, data_len - 1);
 
+            // 发送给接收端
             struct data_pkt forward;
             forward.command = SERV_FORWARD;
             forward.str = send_buf;
             send_pkt(dest, &forward, data_len);
 
+            // 返回给发送端
             sprintf(send_buf, "Successfully send a message to %d.\n", dest);
             res.command = RET_SEND;
             res.str = send_buf;
             send_pkt(from, &res, strlen(send_buf));
+	        printf("Forward a message from %d to %d.\n", from, dest);
         }
         break;
     }
