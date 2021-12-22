@@ -31,4 +31,4 @@ struct data_pkt {
     char* str;
 };
 
-#define DEBUG
+// #define DEBUG
